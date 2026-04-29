@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trud Exchange CRM</title>
+  <style>
+    :root{--bg:#031412;--bg2:#061b18;--card:#0a2622;--card2:#0d2e29;--line:rgba(144,255,208,.14);--line2:rgba(231,209,138,.14);--text:#f2f7f5;--muted:#a9c7bf;--green:#44e39d;--gold:#e7d18a;--red:#ff8d8d;--shadow:0 20px 50px rgba(0,0,0,.34);}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:radial-gradient(1000px 700px at 50% -10%, rgba(68,227,157,.12), transparent 45%), linear-gradient(180deg, #031412 0%, #041b18 38%, #02110f 100%);color:var(--text);min-height:100vh}
+    a{text-decoration:none;color:inherit} .shell{max-width:1600px;margin:0 auto;padding:16px} .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg, rgba(10, 38, 34, 0.92), rgba(6, 24, 22, 0.94));box-shadow:var(--shadow);margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:12px} .logo{width:14px;height:14px;border-radius:999px;background:var(--green);box-shadow:0 0 18px rgba(68,227,157,.45)} .brand b{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)} .brand small{display:block;color:var(--muted);margin-top:4px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap} .btn{border:1px solid rgba(144,255,208,.14);background:rgba(255,255,255,.03);color:var(--text);padding:10px 14px;border-radius:14px;font-size:13px;cursor:pointer} .btn.primary{background:linear-gradient(180deg, rgba(68,227,157,.2), rgba(27,191,114,.1));border-color:rgba(68,227,157,.35)}
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start} .panel{background:linear-gradient(180deg, rgba(10, 38, 34, 0.92), rgba(6, 24, 22, 0.94));border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)} .sidebar{padding:16px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto} .content{min-height:calc(100vh - 120px)}
+    .searchRow{display:flex;gap:10px;align-items:center} .searchRow input,.reply-box textarea,.reply-box select,.assign-row select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(144,255,208,.12);background:rgba(8,39,35,.98);color:var(--text);outline:none;font-size:14px}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px} .chip{padding:8px 12px;border:1px solid rgba(144,255,208,.12);border-radius:999px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.03)} .chip.active{background:rgba(68,227,157,.12);border-color:rgba(68,227,157,.35);color:#effff7}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px} .stat{padding:12px 14px;border-radius:18px;border:1px solid rgba(144,255,208,.12);background:rgba(255,255,255,.03)} .stat b{display:block;font-size:18px;margin-bottom:4px} .stat span{font-size:12px;color:var(--muted)}
+    .convlist{display:flex;flex-direction:column;gap:10px} .conv{padding:14px;border-radius:18px;border:1px solid rgba(144,255,208,.12);background:rgba(255,255,255,.03);transition:.15s ease} .conv:hover{transform:translateY(-1px);border-color:rgba(68,227,157,.24)} .conv.active{border-color:rgba(68,227,157,.38);box-shadow:0 0 0 3px rgba(68,227,157,.06);background:rgba(68,227,157,.05)}
+    .conv-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start} .name{font-weight:700} .meta{font-size:12px;color:var(--muted);line-height:1.45} .snippet{margin-top:10px;color:#d8ebe4;font-size:13px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em} .new{background:rgba(231,209,138,.12);color:var(--gold);border:1px solid rgba(231,209,138,.18)} .in_progress{background:rgba(68,227,157,.12);color:#c9ffe6;border:1px solid rgba(68,227,157,.18)} .closed{background:rgba(255,141,141,.12);color:#ffc7c7;border:1px solid rgba(255,141,141,.18)}
+    .main{padding:18px} .hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:16px} .hero h1{margin:0 0 8px;font-size:28px} .hero p{margin:0;color:var(--muted);line-height:1.5} .hero .info{display:grid;gap:8px} .hero .tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .pill{padding:9px 12px;border-radius:999px;border:1px solid rgba(144,255,208,.12);background:rgba(255,255,255,.03);font-size:12px;color:#dceae5}
+    .split{display:grid;grid-template-columns:1.2fr .8fr;gap:14px} .card{padding:16px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(180deg, rgba(10, 38, 34, 0.88), rgba(6, 24, 22, 0.96));box-shadow:var(--shadow)}
+    .messages{display:flex;flex-direction:column;gap:10px;max-height:58vh;overflow:auto;padding-right:4px} .msg{padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.06);max-width:88%;line-height:1.5} .msg.client{background:rgba(68,227,157,.07);margin-right:auto} .msg.manager{background:rgba(231,209,138,.08);margin-left:auto} .msg.system{background:rgba(255,255,255,.04);color:var(--muted);margin:0 auto;text-align:center}
+    .msg-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;font-size:12px;color:var(--muted)} .msg-body{white-space:pre-wrap}
+    .reply-box textarea{min-height:110px;resize:vertical} .reply-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px} .section-title{font-size:13px;color:#b7d0c8;margin-bottom:10px;letter-spacing:.02em;text-transform:uppercase} .kv{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;font-size:13px;line-height:1.5} .kv div:nth-child(odd){color:var(--muted)} .stack{display:grid;gap:12px} .note{color:var(--muted);font-size:12px;line-height:1.55} .flash{padding:12px 14px;border-radius:16px;margin-bottom:12px} .ok{background:rgba(68,227,157,.08);border:1px solid rgba(68,227,157,.18);color:#c8ffe4} .err{background:rgba(255,141,141,.08);border:1px solid rgba(255,141,141,.18);color:#ffd0d0}
+    @media (max-width: 1100px){.layout{grid-template-columns:1fr}.sidebar{position:relative;max-height:none}.split{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand"><div class="logo"></div><div><b>Trud Exchange CRM</b><small>Один экран для заявок, ответов и статусов</small></div></div>
+      <div class="actions">{% if manager and manager['role'] == 'admin' %}<a class="btn" href="{{ url_for('admin_managers') }}">Менеджеры</a>{% endif %}<a class="btn" href="{{ webapp_url }}" target="_blank">Открыть Mini App</a><a class="btn" href="{{ url_for('logout') }}">Выйти</a></div>
+    </div>
+
+    {% if request.args.get('msg') %}<div class="flash ok">{{ request.args.get('msg') }}</div>{% endif %}
+    {% if request.args.get('err') %}<div class="flash err">{{ request.args.get('err') }}</div>{% endif %}
+
+    <div class="layout">
+      <aside class="panel sidebar">
+        <form class="searchRow" method="get">
+          <input name="q" value="{{ query }}" placeholder="Поиск по клиенту или ID">
+          <input type="hidden" name="status" value="{{ status }}">
+          <input type="hidden" name="mine" value="{{ '1' if only_me else '0' }}">
+          <button class="btn primary" type="submit">Найти</button>
+        </form>
+
+        <div class="filters">
+          {% set st = status or 'all' %}
+          <a class="chip {{ 'active' if st == 'all' else '' }}" href="?status=all&q={{ query }}&mine={{ '1' if only_me else '0' }}">Все</a>
+          <a class="chip {{ 'active' if st == 'new' else '' }}" href="?status=new&q={{ query }}&mine={{ '1' if only_me else '0' }}">Новые</a>
+          <a class="chip {{ 'active' if st == 'in_progress' else '' }}" href="?status=in_progress&q={{ query }}&mine={{ '1' if only_me else '0' }}">В работе</a>
+          <a class="chip {{ 'active' if st == 'closed' else '' }}" href="?status=closed&q={{ query }}&mine={{ '1' if only_me else '0' }}">Закрытые</a>
+          <a class="chip {{ 'active' if only_me else '' }}" href="?status={{ status }}&q={{ query }}&mine={{ '0' if only_me else '1' }}">Только мои</a>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><b>{{ stats.all }}</b><span>Всего</span></div>
+          <div class="stat"><b>{{ stats.new }}</b><span>Новые</span></div>
+          <div class="stat"><b>{{ stats.in_progress }}</b><span>В работе</span></div>
+          <div class="stat"><b>{{ stats.closed }}</b><span>Закрытые</span></div>
+        </div>
+
+        <div class="section-title">Заявки</div>
+        <div class="convlist">
+          {% for c in conversations %}
+            <a class="conv {{ 'active' if selected and c['id'] == selected['id'] else '' }}" href="?c={{ c['id'] }}&status={{ status }}&q={{ query }}&mine={{ '1' if only_me else '0' }}">
+              <div class="conv-top"><div><div class="name">{{ extract_short_name(c) }}</div><div class="meta">#{{ c['id'] }} · {{ format_dt(c['updated_at']) }}</div></div><span class="badge {{ c['status'] }}">{{ c['status'] }}</span></div>
+              <div class="snippet">{{ c['manager_name'] or 'Не назначен' }} · {{ c['client_username'] or c['tg_user_id'] }}</div>
+              <div class="snippet">{{ c['last_message'] if c['last_message'] else '' }}</div>
+            </a>
+          {% else %}<div class="note">Пока нет заявок по этому фильтру.</div>{% endfor %}
+        </div>
+      </aside>
+
+      <main class="panel content">
+        {% if selected %}
+          <div class="main">
+            <div class="hero">
+              <div class="info">
+                <h1>{{ extract_short_name(selected) }}</h1>
+                <p>Telegram ID: <b>{{ selected['tg_user_id'] }}</b><br>Последнее обновление: {{ format_dt(selected['updated_at']) }}</p>
+              </div>
+              <div class="tools">
+                <span class="pill">Статус: <b id="statusText">{{ selected['status'] }}</b></span>
+                <span class="pill">Менеджер: <b>{{ selected['manager_name'] or 'Не назначен' }}</b></span>
+                <span class="pill">Источник: <b>{{ selected['source'] }}</b></span>
+              </div>
+            </div>
+
+            <div class="split">
+              <div class="card">
+                <div class="section-title">Переписка</div>
+                <div class="messages" id="messages">
+                  {% for msg in messages %}
+                    <div class="msg {{ msg['sender_type'] }}">
+                      <div class="msg-head"><span>{{ 'Клиент' if msg['sender_type']=='client' else 'Менеджер' if msg['sender_type']=='manager' else msg['sender_type'] }}</span><span>{{ format_dt(msg['created_at']) }}</span></div>
+                      <div class="msg-body">{{ format_message_content(msg) | e | replace('\n', '<br>') | safe }}</div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="stack">
+                <div class="card">
+                  <div class="section-title">Информация</div>
+                  <div class="kv">
+                    <div>ID заявки</div><div>#{{ selected['id'] }}</div>
+                    <div>Клиент</div><div>{{ extract_short_name(selected) }}</div>
+                    <div>Telegram</div><div>{{ selected['tg_user_id'] }}</div>
+                    <div>Менеджер</div><div>{{ selected['manager_name'] or 'Не назначен' }}</div>
+                    <div>Статус</div><div>{{ selected['status'] }}</div>
+                    <div>Источник</div><div>{{ selected['source'] }}</div>
+                  </div>
+                </div>
+
+                <div class="card reply-box">
+                  <div class="section-title">Ответ клиенту</div>
+                  <textarea id="replyText" placeholder="Напишите ответ..."></textarea>
+                  <div class="reply-actions">
+                    <button class="btn primary" id="sendReply">Отправить</button>
+                    <select id="statusSelect">
+                      <option value="new" {{ 'selected' if selected['status']=='new' else '' }}>new</option>
+                      <option value="in_progress" {{ 'selected' if selected['status']=='in_progress' else '' }}>in_progress</option>
+                      <option value="closed" {{ 'selected' if selected['status']=='closed' else '' }}>closed</option>
+                    </select>
+                    <button class="btn" id="saveStatus">Сменить статус</button>
+                  </div>
+                  {% if manager and manager['role'] == 'admin' %}
+                  <div style="margin-top:14px">
+                    <div class="section-title">Назначение менеджера</div>
+                    <div class="assign-row">
+                      <select id="managerSelect">
+                        <option value="">Не назначен</option>
+                        {% for m in managers %}
+                          <option value="{{ m['id'] }}" {{ 'selected' if selected['assigned_manager_id'] == m['id'] else '' }}>{{ m['name'] }} ({{ m['username'] }})</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="reply-actions"><button class="btn" id="saveAssign">Назначить</button></div>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div class="empty">Выберите заявку слева</div>
+        {% endif %}
+      </main>
+    </div>
+  </div>
+
+<script>
+const conversationId = {{ selected['id'] if selected else 'null' }};
+const managerRole = {{ '"' ~ manager['role'] ~ '"' if manager else 'null' }};
+
+async function postJSON(url, body) {
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.ok) throw new Error(data.error || 'Ошибка');
+  return data;
+}
+
+function scrollBottom() {
+  const el = document.getElementById('messages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+scrollBottom();
+
+const sendReply = document.getElementById('sendReply');
+if (sendReply) {
+  sendReply.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const text = document.getElementById('replyText').value.trim();
+    if (!text) return alert('Введите текст');
+    try {
+      await postJSON(`/api/conversation/${conversationId}/reply`, {message: text});
+      location.reload();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+}
+
+const saveStatus = document.getElementById('saveStatus');
+if (saveStatus) {
+  saveStatus.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const status = document.getElementById('statusSelect').value;
+    try {
+      await postJSON(`/api/conversation/${conversationId}/status`, {status});
+      location.reload();
+    } catch (err) { alert(err.message); }
+  });
+}
+
+const saveAssign = document.getElementById('saveAssign');
+if (saveAssign) {
+  saveAssign.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const manager_id = document.getElementById('managerSelect').value;
+    try {
+      await postJSON(`/api/conversation/${conversationId}/assign`, {manager_id});
+      location.reload();
+    } catch (err) { alert(err.message); }
+  });
+}
+</script>
+</body>
+</html>
