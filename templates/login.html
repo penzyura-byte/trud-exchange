@@ -2,147 +2,99 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>Trud Exchange</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход в CRM</title>
   <style>
-    :root{--bg:#031714;--card:#0a2622;--line:rgba(144,255,208,.14);--text:#eef8f4;--muted:#a9c7bf;--green:#44e39d;--gold:#e7d18a;}
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(180deg,#031412 0%,#041b18 38%,#02110f 100%);color:var(--text)}
-    .wrap{min-height:100vh;padding:16px;display:grid;place-items:center}
-    .card{width:min(720px,100%);border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg, rgba(10,38,34,.94), rgba(6,24,22,.96));box-shadow:0 24px 60px rgba(0,0,0,.38);padding:18px}
-    h1{margin:0 0 6px;font-size:28px}.sub{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:18px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    :root{
+      --bg:#031412;
+      --card:#0a2622;
+      --line:rgba(144,255,208,.14);
+      --text:#eef8f4;
+      --muted:#9bbab2;
+      --green:#44e39d;
+      --red:#ff8d8d;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(180deg,#031412 0%,#041b18 38%,#02110f 100%);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      padding:16px;
+    }
+    .card{
+      width:min(420px,100%);
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:linear-gradient(180deg, rgba(10,38,34,.94), rgba(6,24,22,.96));
+      box-shadow:0 24px 60px rgba(0,0,0,.38);
+      padding:24px;
+    }
+    h1{margin:0 0 8px;font-size:28px}
+    .sub{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:18px}
     label{display:block;font-size:13px;color:#b7d0c8;margin:12px 0 8px}
-    input,select,textarea,button{font:inherit}
-    input,select,textarea{width:100%;padding:14px 14px;border-radius:14px;border:1px solid rgba(144,255,208,.12);background:rgba(8,39,35,.98);color:var(--text);outline:none}
-    textarea{min-height:80px;resize:vertical}
-    .toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-    .toggle button,.submit{border:1px solid rgba(144,255,208,.12);border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.03);color:var(--text);cursor:pointer;font-weight:700}
-    .toggle button.active{background:rgba(68,227,157,.16);border-color:rgba(68,227,157,.32)}
-    .submit{width:100%;margin-top:16px;background:linear-gradient(180deg,#57f0ad 0%, #2ccf88 100%);color:#052017;font-size:16px}
-    .hint{margin-top:12px;color:var(--muted);font-size:13px;line-height:1.5;text-align:center}
-    .mini{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.mini span{padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:var(--muted);font-size:12px}
-    @media (max-width:700px){.row,.row3{grid-template-columns:1fr}}
+    input,button{
+      width:100%;
+      font:inherit;
+      border-radius:14px;
+    }
+    input{
+      padding:14px;
+      border:1px solid rgba(144,255,208,.12);
+      background:rgba(8,39,35,.98);
+      color:var(--text);
+      outline:none;
+    }
+    button{
+      margin-top:16px;
+      padding:14px 16px;
+      border:0;
+      background:linear-gradient(180deg,#57f0ad 0%, #2ccf88 100%);
+      color:#052017;
+      font-weight:800;
+      font-size:15px;
+      cursor:pointer;
+    }
+    .err{
+      margin-bottom:12px;
+      padding:12px 14px;
+      border-radius:16px;
+      background:rgba(255,141,141,.08);
+      border:1px solid rgba(255,141,141,.18);
+      color:#ffd0d0;
+    }
+    .hint{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+      text-align:center;
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <h1>Заявка на обмен</h1>
-    <div class="sub">Заполните форму. После отправки заявка уйдёт менеджеру в CRM, а диалог продолжится в Telegram.</div>
+  <form class="card" method="post">
+    <h1>Вход в CRM</h1>
+    <div class="sub">Введите логин и пароль менеджера или администратора.</div>
 
-    <div class="toggle">
-      <button id="modeGive" class="active" type="button">Отдаю</button>
-      <button id="modeReceive" type="button">Получаю</button>
+    {% if error %}
+      <div class="err">{{ error }}</div>
+    {% endif %}
+
+    <label>Логин</label>
+    <input name="username" placeholder="{{ admin_username }}" autocomplete="username" required>
+
+    <label>Пароль</label>
+    <input name="password" type="password" autocomplete="current-password" required>
+
+    <button type="submit">Войти</button>
+
+    <div class="hint">
+      После входа откроется панель заявок, переписка и кнопки управления.
     </div>
-
-    <div class="row">
-      <div>
-        <label>Сумма</label>
-        <input id="amount" inputmode="decimal" placeholder="Например, 500">
-      </div>
-      <div>
-        <label>Валюта</label>
-        <select id="currency">
-          <option>USDT</option><option>USD</option><option>EUR</option><option>RUB</option><option>BTC</option><option>ETH</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row3">
-      <div>
-        <label>Город</label>
-        <input id="city" placeholder="Например, Москва">
-      </div>
-      <div>
-        <label>Имя</label>
-        <input id="name" placeholder="Ваше имя">
-      </div>
-      <div>
-        <label>Телефон / Telegram</label>
-        <input id="contact" placeholder="@username или +7...">
-      </div>
-    </div>
-
-    <label>Комментарий</label>
-    <textarea id="comment" placeholder="Коротко опишите запрос"></textarea>
-
-    <button class="submit" id="sendBtn" type="button">Отправить заявку</button>
-    <div class="hint">При нажатии вы перейдёте в чат с менеджером, куда нужно будет отправить заявку.</div>
-
-    <div class="mini">
-      <span id="userLabel">Telegram Mini App</span>
-      <span id="statusLabel">Готово к отправке</span>
-    </div>
-  </div>
-</div>
-
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.expand();
-}
-
-let mode = 'give';
-const modeGive = document.getElementById('modeGive');
-const modeReceive = document.getElementById('modeReceive');
-const statusLabel = document.getElementById('statusLabel');
-const userLabel = document.getElementById('userLabel');
-
-function setMode(next) {
-  mode = next;
-  modeGive.classList.toggle('active', mode === 'give');
-  modeReceive.classList.toggle('active', mode === 'receive');
-}
-modeGive.addEventListener('click', () => setMode('give'));
-modeReceive.addEventListener('click', () => setMode('receive'));
-
-if (tg?.initDataUnsafe?.user) {
-  const u = tg.initDataUnsafe.user;
-  userLabel.textContent = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Клиент';
-}
-
-function buildPayload() {
-  const amount = document.getElementById('amount').value.trim();
-  const currency = document.getElementById('currency').value;
-  const city = document.getElementById('city').value.trim();
-  const name = document.getElementById('name').value.trim();
-  const contact = document.getElementById('contact').value.trim();
-  const comment = document.getElementById('comment').value.trim();
-
-  const payload = {
-    direction: mode,
-    amount,
-    currency,
-    city,
-    name,
-    contact,
-    comment,
-  };
-  const text = `${mode === 'give' ? 'Отдаю' : 'Получаю'}: ${amount} ${currency}` +
-    (city ? `\nГород: ${city}` : '') +
-    (name ? `\nИмя: ${name}` : '') +
-    (contact ? `\nКонтакт: ${contact}` : '') +
-    (comment ? `\nКомментарий: ${comment}` : '');
-  return { payload, text };
-}
-
-document.getElementById('sendBtn').addEventListener('click', () => {
-  const { payload, text } = buildPayload();
-  if (!payload.amount || !payload.currency) {
-    statusLabel.textContent = 'Введите сумму и валюту';
-    return;
-  }
-  const sendValue = JSON.stringify({ order: payload, summary: text });
-  if (tg && tg.sendData) {
-    tg.sendData(sendValue);
-    statusLabel.textContent = 'Заявка отправлена';
-    setTimeout(() => tg.close(), 300);
-  } else {
-    statusLabel.textContent = 'Telegram WebApp недоступен';
-    alert(sendValue);
-  }
-});
-</script>
+  </form>
 </body>
 </html>
