@@ -8,38 +8,6 @@ from typing import Any, Dict, Optional
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, send_from_directory, url_for
 
-from common import (
-    ADMIN_PASSWORD,
-    ADMIN_USERNAME,
-    CRM_PUBLIC_URL,
-    SECRET_KEY,
-    BASE_DIR,
-    WEBAPP_URL,
-    add_manager,
-    add_message,
-    assign_conversation,
-    build_summary_from_order,
-    connect_db,
-    create_conversation,
-    extract_short_name,
-    format_dt,
-    get_client_by_tg_id,
-    get_conversation,
-    get_messages,
-    get_manager,
-    init_db,
-    list_conversations,
-    list_managers,
-    manager_display_name,
-    now_iso,
-    safe_json_loads,
-    send_telegram_message,
-    set_conversation_status,
-    choose_manager_for_new_conversation,
-    upsert_client,
-    verify_manager_login,
-)
-
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 app = Flask(__name__, template_folder=str(BASE_DIR / "templates"), static_folder=str(BASE_DIR / "static"))
