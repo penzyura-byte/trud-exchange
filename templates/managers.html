@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trud Exchange CRM — менеджеры</title>
+  <style>
+    :root{--bg:#031412;--card:#0a2622;--line:rgba(144,255,208,.14);--text:#eef8f4;--muted:#9bbab2;--green:#44e39d;--gold:#e7d18a;--red:#ff8d8d;}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh;background:radial-gradient(1000px 700px at 50% -10%, rgba(68,227,157,.12), transparent 45%), linear-gradient(180deg, #031412 0%, #041b18 38%, #02110f 100%);color:var(--text);padding:18px}
+    .wrap{max-width:1100px;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg, rgba(10, 38, 34, 0.92), rgba(6, 24, 22, 0.94));box-shadow:0 24px 60px rgba(0,0,0,.4);margin-bottom:14px}
+    .topbar b{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)} .btn{border:1px solid rgba(144,255,208,.14);background:rgba(255,255,255,.03);color:var(--text);padding:10px 14px;border-radius:14px;font-size:13px;text-decoration:none}
+    .card{padding:18px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg, rgba(10, 38, 34, 0.92), rgba(6, 24, 22, 0.94));box-shadow:0 24px 60px rgba(0,0,0,.34);margin-bottom:14px}
+    h1{margin:0 0 8px;font-size:28px} p{margin:0;color:var(--muted);line-height:1.5}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px} label{display:block;font-size:13px;color:#b7d0c8;margin:12px 0 8px} input,select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(144,255,208,.12);background:rgba(8,39,35,.98);color:var(--text);outline:none;font-size:14px}
+    table{width:100%;border-collapse:collapse;overflow:hidden} th,td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px} th{color:var(--muted);font-weight:600}
+    .badge{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase}.on{background:rgba(68,227,157,.12);color:#c9ffe6;border:1px solid rgba(68,227,157,.18)}.off{background:rgba(255,141,141,.12);color:#ffd0d0;border:1px solid rgba(255,141,141,.18)}
+    button{padding:12px 16px;border:0;border-radius:14px;background:linear-gradient(180deg, #57f0ad 0%, #2ccf88 100%);color:#052017;font-weight:800;font-size:14px;cursor:pointer}
+    .msg-ok,.msg-err{padding:12px 14px;border-radius:16px;margin-bottom:12px}.msg-ok{background:rgba(68,227,157,.08);border:1px solid rgba(68,227,157,.18);color:#c8ffe4}.msg-err{background:rgba(255,141,141,.08);border:1px solid rgba(255,141,141,.18);color:#ffd0d0}
+    @media (max-width: 900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div><b>Trud Exchange CRM</b><div style="color:var(--muted);margin-top:4px">Управление менеджерами</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="{{ url_for('dashboard') }}">← В CRM</a><a class="btn" href="{{ url_for('logout') }}">Выйти</a></div>
+    </div>
+
+    {% if success %}<div class="msg-ok">{{ success }}</div>{% endif %}
+    {% if error %}<div class="msg-err">{{ error }}</div>{% endif %}
+
+    <div class="grid">
+      <div class="card">
+        <h1>Добавить менеджера</h1>
+        <p>Создайте отдельные учётные записи для сотрудников.</p>
+        <form method="post">
+          <input type="hidden" name="action" value="add">
+          <label>Имя</label><input name="name" placeholder="Иван" required>
+          <label>Логин</label><input name="username" placeholder="ivan" required>
+          <label>Пароль</label><input name="password" type="password" placeholder="пароль" required>
+          <label>Роль</label>
+          <select name="role"><option value="manager">manager</option><option value="admin">admin</option></select>
+          <label>Telegram chat id (необязательно)</label><input name="tg_chat_id" placeholder="123456789">
+          <div style="margin-top:14px"><button type="submit">Добавить</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h1>Список</h1>
+        <p>Активные менеджеры могут получать распределение заявок.</p>
+        <div style="margin-top:14px;overflow:auto">
+          <table>
+            <thead><tr><th>ID</th><th>Имя</th><th>Логин</th><th>Роль</th><th>Статус</th><th>Telegram</th><th>Действие</th></tr></thead>
+            <tbody>
+              {% for m in managers %}
+              <tr>
+                <td>{{ m['id'] }}</td><td>{{ m['name'] }}</td><td>{{ m['username'] }}</td><td>{{ m['role'] }}</td>
+                <td><span class="badge {{ 'on' if m['active'] else 'off' }}">{{ 'active' if m['active'] else 'off' }}</span></td>
+                <td>{{ m['tg_chat_id'] or '—' }}</td>
+                <td>
+                  <form method="post" style="margin:0">
+                    <input type="hidden" name="action" value="toggle">
+                    <input type="hidden" name="manager_id" value="{{ m['id'] }}">
+                    <button type="submit">{{ 'Отключить' if m['active'] else 'Включить' }}</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
