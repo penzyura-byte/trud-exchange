@@ -6,26 +6,6 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from common import (
-    ADMIN_USERNAME,
-    BASE_DIR,
-    BOT_TOKEN,
-    CRM_PUBLIC_URL,
-    WEBAPP_URL,
-    add_message,
-    assign_conversation,
-    build_summary_from_order,
-    build_text_keyboard,
-    choose_manager_for_new_conversation,
-    create_conversation,
-    init_db,
-    list_managers,
-    now_iso,
-    send_telegram_message,
-    set_conversation_status,
-    upsert_client,
-)
-
 API_BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 
