@@ -1,20 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
 import sys
 
-from flask import (
-    Flask,
-    abort,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    session,
-    send_from_directory,
-    url_for,
-)
+import requests
+from flask import Flask, abort, jsonify, redirect, render_template, request, session, send_from_directory, url_for
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
@@ -28,12 +19,15 @@ from common import (  # noqa: E402
     add_message,
     assign_conversation,
     build_summary_from_order,
+    choose_manager_for_new_conversation,
     connect_db,
+    create_conversation,
     extract_short_name,
     format_dt,
     get_conversation,
     get_messages,
     get_manager,
+    get_open_conversation,
     init_db,
     list_conversations,
     list_managers,
@@ -41,6 +35,7 @@ from common import (  # noqa: E402
     safe_json_loads,
     send_telegram_message,
     set_conversation_status,
+    upsert_client,
     update_manager,
     verify_manager_login,
 )
@@ -72,7 +67,6 @@ def require_login(fn):
         if not session.get("manager_id"):
             return redirect(url_for("login", next=request.path))
         return fn(*args, **kwargs)
-
     return wrapper
 
 
@@ -88,6 +82,17 @@ def format_message_content(msg):
         summary = data.get("summary") or build_summary_from_order(order)
         return summary or msg["content"]
     return msg["content"]
+
+
+def tg_reply_markup_webapp(url: str) -> dict:
+    return {
+        "inline_keyboard": [[
+            {
+                "text": "Открыть форму",
+                "web_app": {"url": url},
+            }
+        ]]
+    }
 
 
 @app.route("/")
@@ -108,7 +113,6 @@ def login():
             session["role"] = manager["role"]
             return redirect(url_for("crm"))
         error = "Неверный логин или пароль"
-
     return render_template("login.html", error=error, admin_username=ADMIN_USERNAME)
 
 
@@ -119,7 +123,6 @@ def crm():
     status = request.args.get("status", "all")
     q = request.args.get("q", "").strip()
     only_me = request.args.get("mine", "0") == "1"
-
     selected_id = request.args.get("c") or request.args.get("conversation_id")
     selected_id = int(selected_id) if selected_id and str(selected_id).isdigit() else None
 
@@ -213,6 +216,110 @@ def webapp():
     return send_from_directory(str(ROOT / "static"), "app.html")
 
 
+@app.route("/webhook", methods=["POST"])
+def telegram_webhook():
+    data = request.get_json(silent=True) or {}
+    message = data.get("message") or data.get("edited_message")
+    if not message:
+        return jsonify({"ok": True})
+
+    if message.get("from", {}).get("is_bot"):
+        return jsonify({"ok": True})
+
+    user = message["from"]
+    chat_id = int(message["chat"]["id"])
+
+    # /start -> показываем кнопку формы
+    text = (message.get("text") or "").strip()
+    if text.startswith("/start"):
+        try:
+            send_telegram_message(
+                chat_id,
+                "Здравствуйте. Заполните заявку в форме ниже.",
+                reply_markup=tg_reply_markup_webapp(WEBAPP_URL),
+            )
+        except Exception:
+            pass
+        return jsonify({"ok": True})
+
+    # Любой текст клиента
+    if text:
+        client_id = upsert_client(user)
+        open_conv = get_open_conversation(client_id)
+        if open_conv:
+            conv_id = int(open_conv["id"])
+        else:
+            conv_id = create_conversation(client_id, source="telegram")
+            manager = choose_manager_for_new_conversation()
+            if manager:
+                assign_conversation(conv_id, int(manager["id"]))
+
+        add_message(
+            conv_id,
+            "client",
+            text,
+            sender_name=user.get("first_name") or user.get("username") or "Клиент",
+            message_type="text",
+        )
+
+        # Короткое подтверждение клиенту
+        try:
+            send_telegram_message(
+                chat_id,
+                "Принял сообщение. Менеджер уже видит заявку в CRM.",
+                reply_markup=tg_reply_markup_webapp(WEBAPP_URL),
+            )
+        except Exception:
+            pass
+
+        return jsonify({"ok": True})
+
+    # Данные из Mini App
+    if message.get("web_app_data"):
+        raw = message["web_app_data"].get("data", "").strip()
+        client_id = upsert_client(user)
+        open_conv = get_open_conversation(client_id)
+        if open_conv:
+            conv_id = int(open_conv["id"])
+        else:
+            conv_id = create_conversation(client_id, source="web_app")
+            manager = choose_manager_for_new_conversation()
+            if manager:
+                assign_conversation(conv_id, int(manager["id"]))
+
+        msg_type = "json"
+        stored_content = raw
+        try:
+            parsed = safe_json_loads(raw) or {}
+            summary = parsed.get("summary") or build_summary_from_order(parsed.get("order") or {})
+            if summary:
+                stored_content = raw
+                # summary покажет CRM через format_message_content
+        except Exception:
+            msg_type = "text"
+
+        add_message(
+            conv_id,
+            "client",
+            stored_content,
+            sender_name=user.get("first_name") or user.get("username") or "Клиент",
+            message_type=msg_type,
+        )
+
+        try:
+            send_telegram_message(
+                chat_id,
+                "Заявка принята. Менеджер продолжит общение в этом же чате.",
+                reply_markup=tg_reply_markup_webapp(WEBAPP_URL),
+            )
+        except Exception:
+            pass
+
+        return jsonify({"ok": True})
+
+    return jsonify({"ok": True})
+
+
 @app.route("/api/conversation/<int:conversation_id>/reply", methods=["POST"])
 @require_login
 def api_reply(conversation_id: int):
@@ -255,7 +362,6 @@ def api_status(conversation_id: int):
     conversation = get_conversation(conversation_id)
     if not conversation:
         return jsonify({"ok": False, "error": "Conversation not found"}), 404
-
     if not is_admin() and conversation["assigned_manager_id"] not in (None, int(mgr["id"])):
         return jsonify({"ok": False, "error": "Not allowed"}), 403
 
@@ -265,7 +371,6 @@ def api_status(conversation_id: int):
         return jsonify({"ok": False, "error": "Invalid status"}), 400
 
     set_conversation_status(conversation_id, status)
-
     if status == "closed":
         try:
             send_telegram_message(
@@ -317,7 +422,6 @@ def admin_managers():
             password = request.form.get("password", "")
             role = request.form.get("role", "manager")
             tg_chat_id = request.form.get("tg_chat_id", "").strip()
-
             if not (name and username and password):
                 error = "Заполните имя, логин и пароль"
             else:
