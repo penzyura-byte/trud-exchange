@@ -1,17 +1,46 @@
 from __future__ import annotations
 
-import json
-from functools import wraps
 from pathlib import Path
 import sys
-from typing import Any, Dict, Optional
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, send_from_directory, url_for
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT))
 
-app = Flask(__name__, template_folder=str(BASE_DIR / "templates"), static_folder=str(BASE_DIR / "static"))
+from common import (  # noqa: E402
+    ADMIN_PASSWORD,
+    ADMIN_USERNAME,
+    CRM_PUBLIC_URL,
+    SECRET_KEY,
+    WEBAPP_URL,
+    add_manager,
+    add_message,
+    assign_conversation,
+    build_summary_from_order,
+    connect_db,
+    extract_short_name,
+    format_dt,
+    get_conversation,
+    get_messages,
+    get_manager,
+    init_db,
+    list_conversations,
+    list_managers,
+    manager_display_name,
+    safe_json_loads,
+    send_telegram_message,
+    set_conversation_status,
+    verify_manager_login,
+)
+
+app = Flask(__name__, template_folder=str(ROOT / "templates"), static_folder=str(ROOT / "static"), static_url_path="/static")
 app.config["SECRET_KEY"] = SECRET_KEY or "trud-crm-secret"
+
+
+@app.before_request
+def _init_db():
+    init_db()
 
 
 def current_manager():
@@ -22,11 +51,14 @@ def current_manager():
 
 
 def require_login(fn):
+    from functools import wraps
+
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not session.get("manager_id"):
             return redirect(url_for("login", next=request.path))
         return fn(*args, **kwargs)
+
     return wrapper
 
 
@@ -35,37 +67,13 @@ def is_admin() -> bool:
     return bool(mgr and mgr["role"] == "admin")
 
 
-def conversation_text(conv_row) -> str:
-    client_name = extract_short_name(conv_row)
-    last_message = ""
-    with connect_db() as conn:
-        row = conn.execute(
-            "SELECT content, sender_type FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 1",
-            (conv_row["id"],),
-        ).fetchone()
-        if row:
-            last_message = row["content"][:120]
-    return last_message
-
-
 def format_message_content(msg):
     if msg["message_type"] == "json":
         data = safe_json_loads(msg["content"]) or {}
         order = data.get("order") or {}
         summary = data.get("summary") or build_summary_from_order(order)
-        return summary
+        return summary or msg["content"]
     return msg["content"]
-
-
-@app.before_request
-def _init():
-    init_db()
-
-
-@app.route("/app.html")
-@app.route("/webapp")
-def webapp():
-    return send_from_directory(str(BASE_DIR / "webapp"), "app.html")
 
 
 @app.route("/")
@@ -75,9 +83,7 @@ def dashboard():
     status = request.args.get("status", "all")
     q = request.args.get("q", "").strip()
     only_me = request.args.get("mine", "0") == "1"
-    selected_id = request.args.get("c")
-    if selected_id is None:
-        selected_id = request.args.get("conversation_id")
+    selected_id = request.args.get("c") or request.args.get("conversation_id")
     selected_id = int(selected_id) if selected_id and str(selected_id).isdigit() else None
 
     conversations = list_conversations(
@@ -86,13 +92,13 @@ def dashboard():
         manager_id=int(mgr["id"]) if mgr else None,
         only_assigned_to_me=only_me,
     )
+
     selected = None
     messages = []
     if selected_id:
         selected = get_conversation(selected_id)
         if selected:
             if not is_admin() and selected["assigned_manager_id"] not in (None, int(mgr["id"])):
-                # not yours
                 selected = None
             else:
                 messages = get_messages(selected_id)
@@ -151,6 +157,12 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/app.html")
+@app.route("/webapp")
+def webapp():
+    return send_from_directory(str(ROOT / "static"), "app.html")
+
+
 @app.route("/api/conversation/<int:conversation_id>/reply", methods=["POST"])
 @require_login
 def api_reply(conversation_id: int):
@@ -158,7 +170,6 @@ def api_reply(conversation_id: int):
     conversation = get_conversation(conversation_id)
     if not conversation:
         return jsonify({"ok": False, "error": "Conversation not found"}), 404
-
     if not is_admin() and conversation["assigned_manager_id"] not in (None, int(mgr["id"])):
         return jsonify({"ok": False, "error": "Not allowed"}), 403
 
@@ -168,9 +179,9 @@ def api_reply(conversation_id: int):
         return jsonify({"ok": False, "error": "Empty message"}), 400
 
     client_user_id = int(conversation["tg_user_id"])
-    # store in DB and send to Telegram
     add_message(conversation_id, "manager", text, sender_name=manager_display_name(mgr), message_type="text")
     set_conversation_status(conversation_id, "in_progress")
+
     try:
         send_telegram_message(client_user_id, text)
     except Exception as exc:
@@ -187,10 +198,12 @@ def api_status(conversation_id: int):
         return jsonify({"ok": False, "error": "Conversation not found"}), 404
     if not is_admin() and conversation["assigned_manager_id"] not in (None, int(mgr["id"])):
         return jsonify({"ok": False, "error": "Not allowed"}), 403
+
     payload = request.get_json(force=True, silent=True) or {}
     status = payload.get("status", "").strip()
     if status not in {"new", "in_progress", "closed"}:
         return jsonify({"ok": False, "error": "Invalid status"}), 400
+
     set_conversation_status(conversation_id, status)
     if status == "closed":
         try:
@@ -256,7 +269,6 @@ def admin_managers():
 @app.route("/api/bootstrap", methods=["GET"])
 @require_login
 def bootstrap():
-    """Small JSON for future JS enhancements."""
     conversations = list_conversations(limit=20)
     return jsonify({
         "ok": True,
